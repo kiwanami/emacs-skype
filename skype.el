@@ -21,6 +21,17 @@
 ;;; Commentary:
 
 ;; Improving Skype GUI.
+;; This is under development...
+;; 
+;; To use this program, locate this file to load-path directory,
+;; and add the following code to your .emacs.
+;; ------------------------------
+;; (require 'skype)
+;; (setq skype--my-user-handle "your skype account")
+;; ------------------------------
+;; If you have anything.el, bind `skype--anything-command' to key,
+;; like (global-set-key (kbd "M-9") 'skype--anything-command).
+
 
 ;;; Development memo
 
@@ -41,6 +52,8 @@
 ;;  last login time
 ;;  show profile
 ;; 
+;; additional 
+;;   custom user icon
 
 ;; [naming rule]
 ;; 
@@ -86,24 +99,23 @@
 ;;   * skype-member-getter-function
 ;;   * skype-mode-line-prompt
 ;; 
-;; 
 
 ;;; Code:
 
 (require 'dbus)
 (eval-when-compile (require 'cl))
 
-(defvar skype--my-user-handle "arg-skrai"
+(defvar skype--my-user-handle "(your skype account name)"
   "Your user account name.")
 
-(defvar skype--icon-path "~/elisp/skype-img/SkypeIcons/icons"
-  "Get icons from https://developer.skype.com/Download/SkypeIcons
-  and extract it.")
+(defvar skype--libpath (file-name-directory (locate-library "skype"))
+  "skype.el directory. [automatically detected by locate-library]")
 
-(defvar skype--emoticon-path "~/elisp/skype-img/SkypeEmoticons_updated/static"
-  "Get emoticons from
-  https://developer.skype.com/Download/SkypeEmoticons and extract
-  it.")
+(defvar skype--icon-path (concat skype--libpath "/icons")
+  "Directory for the skype icons. [automatically detected]")
+  
+(defvar skype--emoticon-path (concat skype--libpath "/emoticons")
+  "Directory for the skype emoticons. [automatically detected]")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; private fundamental functions
@@ -648,8 +660,19 @@ This function is used by `skype--chat-get-recent-objects', `skype--chat-get-book
 The argument CHAT-HANDLE can be `skype-chat' object."
   (when (skype-chat-p chat-handle)
     (setq chat-handle (skype-chat-chat-handle chat-handle)))
-  (skype--com (concat "CHATMESSAGE " chat-handle " " 
-                      (encode-coding-string text 'utf-8-dos))))
+  (skype--com 
+   (concat "CHATMESSAGE " chat-handle " " 
+           (encode-coding-string 
+            (if skype--chat-send-message-function 
+                (funcall skype--chat-send-message-function
+                         (skype--chat-handle-to-object chat-handle) text)
+              text)
+            'utf-8-dos))))
+
+(defvar skype--chat-send-message-function nil
+  "Abnormal hook for sending a message with two argument,
+the skype-chat object and the sending text message. The returned
+text is sent to the skype.") ; TODO test
 
 (defun skype--chat-set-topic (chat-handle topic)
   "Set a chat title.
@@ -979,7 +1002,7 @@ messages."
             (delete-region begin end)
             (goto-char begin))
         (goto-char (point-max))))
-    (insert (skype--layout-chatmsg chatmsg-object same-user))))
+    (insert (skype--layout-chatmsg skype-chat-handle chatmsg-object same-user))))
 
 (defface skype--face-my-time-field '((t (:foreground "chocolate4"))) 
   "Face for time field of chat messages." :group 'skype)
@@ -994,7 +1017,12 @@ messages."
 (defface skype--face-other-message '((t (:background "LightSkyBlue1")))
   "Face for header line of others' chat messages." :group 'skype)
 
-(defun skype--layout-chatmsg (msg &optional same-user)
+(defvar skype--layout-chatmsg-function nil
+  "Abnormal hook for layouting a message with two argument,
+ the skype-chat object and the received message object. The
+returned text is shown in a buffer.") ; TODO test
+
+(defun skype--layout-chatmsg (chat-handle msg &optional same-user)
   "Return a layouted text for one chat message.
 If the variable SAME-USER is non-nil, the user name is omitted."
   (let*
@@ -1022,7 +1050,11 @@ If the variable SAME-USER is non-nil, the user name is omitted."
        (optional-field 
         (concat type-field " " status-field edited-field))
        (message-field
-        (skype--emoticons-replace (skype-chatmsg-body msg)))
+        (skype--emoticons-replace 
+         (if skype--layout-chatmsg-function
+             (skype--layout-chatmsg-function 
+              (skype--chat-handle-to-object chat-handle) msg)
+           (skype-chatmsg-body msg))))
        (line-bgcolor (if (skype--chatmsg-mine-p msg)
                          'skype--face-my-message
                        'skype--face-other-message))
@@ -1415,11 +1447,6 @@ update the mode line."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; writing a chat message mode
-
-(defvar skype--message-send-functions nil
-  "Abnormal hook for sending a message with one argument,
-the sending text message. The returned text is sent to the
-skype.")
 
 (defvar skype--message-send-history-size 5
   "Size of the send history.")
