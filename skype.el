@@ -1748,6 +1748,7 @@ function that returns a list of member handles."
 
 (defun skype--timer-start-update ()
   "Start the update timer that updates skype chat buffers."
+  (interactive)
   (unless skype--timer-update-handle
     (setq skype--timer-update-handle 
           (run-at-time
@@ -1758,6 +1759,7 @@ function that returns a list of member handles."
 
 (defun skype--timer-stop-update ()
   "Stop the update timer that updates skype chat buffers."
+  (interactive)
   (if skype--timer-update-handle
       (progn
         (cancel-timer skype--timer-update-handle)
