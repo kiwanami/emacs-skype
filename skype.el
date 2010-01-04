@@ -1,6 +1,6 @@
 ;;; skype.el --- skype UI for emacs users..
 
-;; Copyright (C) 2009  SAKURAI Masashi
+;; Copyright (C) 2009, 2010  SAKURAI Masashi
 
 ;; Author: SAKURAI Masashi <m.sakurai@kiwanami.net>
 ;; Keywords: skype, chat
@@ -231,7 +231,7 @@ If `skype--com-debug-mode' is non-nil, this function logs I/O into the debug buf
           (goto-char (point-max))
           (insert ">> " message "\n")
           (insert "<< " ret "\n"))))
-    (if (string-match "^ERROR [0-9]+" ret)
+    (if (= (or (string-match "^ERROR [0-9]+" ret) -1) 0)
         (signal 'skype-error (list ret))
       ret)))
 
