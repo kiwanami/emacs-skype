@@ -1477,7 +1477,23 @@ update the mode line."
             ([?\C-\S-n]    . skype--message-mode-chat-scroll-up-command)
             ([?\C-\S-j]    . skype--message-mode-chat-scroll-down-command)
             ([?\C-\S-k]    . skype--message-mode-chat-scroll-up-command)
+
+            ([?\C-\S-q]    . skype--message-mode-chat-quit-command)
+            ([?\C-\S-c]    . skype--message-mode-chat-clear-missed-command)
             )))
+
+(defun skype--message-mode-chat-quit-command ()
+  (interactive)
+  (let ((main-buf skype-chat-buffer))
+    (skype--message-mode-quit-command)
+    (set-buffer main-buf)
+    (skype--kill-chat-buffer-command)))
+
+(defun skype--message-mode-chat-clear-missed-command ()
+  (interactive)
+  (save-current-buffer 
+    (set-buffer skype-chat-buffer)
+    (skype--chat-mode-clear-missed-command)))
 
 (defun skype--message-buffer-p (&optional buffer)
   (unless buffer
