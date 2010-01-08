@@ -1192,7 +1192,7 @@ contact users and return an user handle."
          (or user-handle 
              (skype--select-user "Open New Chat for... : "))))
     (when target-user
-      (pop-to-buffer
+      (switch-to-buffer
        (skype--open-chat-buffer 
         (skype--start-chat target-user))))))
 
