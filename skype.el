@@ -303,7 +303,9 @@ Skype API command:
   "Return the value that can be get like following Skype API command:\n
 -> GET (type) (id) (attr)\n
 <- (type) (id) (attr) (value)\n."
-  (skype--com-get (concat type " " id " " attr)))
+  (let ((ret (skype--com-get (concat type " " id " " attr))))
+    (unless (string= ret "")
+      ret)))
 
 ;; emoticons
 
@@ -628,8 +630,10 @@ The argument USER-HANDLE can be `skype-user' object."
   (when (skype-user-p user-handle)
     (setq user-handle (skype-user-handle user-handle)))
   (let ((ret (skype--com (concat "CHAT CREATE " user-handle))))
-    (if (string-match "^CHAT \\(.+\\) STATUS DIALOG" ret)
-        (match-string-no-properties 1 ret))))
+    (when (string-match "^CHAT \\(.+\\) STATUS DIALOG" ret)
+      (let ((id (match-string-no-properties 1 ret)))
+	;; (skype--com (concat "OPEN CHAT " id))
+	id))))
 
 (defun skype--start-call (user-handle)
   "Start a skype call and return the call-handle.
