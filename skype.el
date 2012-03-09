@@ -538,7 +538,7 @@ AWAY, NA, DND, INVISIBLE and LOGGEDOUT."
 
 (defun skype--get-group-users (group-handle)
   "Return a list of user-handles those belong to the given group."
-  (skype--split (skype--com-get (concat "GROUP " group-handle " USERS"))))
+  (skype--split (skype--com-search (concat "FRIENDS"))))
 
 (defun skype--user-get-attr (user-handle attr)
   "Return a property value.
