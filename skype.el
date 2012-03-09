@@ -1,6 +1,7 @@
 ;;; skype.el --- skype UI for emacs users..
 
 ;; Copyright (C) 2009, 2010  SAKURAI Masashi
+;; Revision 1.3
 
 ;; Author: SAKURAI Masashi <m.sakurai@kiwanami.net>
 ;; Keywords: skype, chat
@@ -31,6 +32,21 @@
 ;; ------------------------------
 ;; If you have anything.el, bind `skype--anything-command' to key,
 ;; like (global-set-key (kbd "M-9") 'skype--anything-command).
+
+;;; History:
+
+;; Revision 1.3  2010/09/15 
+;; Bug fixed: skype--split. (thanks to @naota344)
+;;
+;; Revision 1.2  2010/01/08 
+;; Bug fixed and refactored.
+;;
+;; Revision 1.1  2009/03/01 
+;; Automatically detect icon path.
+;;
+;; Revision 1.0  2009/02/21 
+;; First release.
+;;
 
 
 ;;; Development memo
@@ -134,7 +150,7 @@ from the given string."
      "")))
 
 (defun skype--split (txt)
-  (mapcar 'skype--string-trim (split-string txt ",")))
+  (mapcar 'skype--string-trim (split-string txt ", ")))
 
 (defmacro skype--collect (arg &rest forms)
   (declare (indent 1))
