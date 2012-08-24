@@ -554,7 +554,7 @@ AWAY, NA, DND, INVISIBLE and LOGGEDOUT."
 
 (defun skype--get-group-users (group-handle)
   "Return a list of user-handles those belong to the given group."
-  (skype--split (skype--com-search (concat "FRIENDS"))))
+  (skype--split (skype--com-get (concat "GROUP " group-handle " USERS"))))
 
 (defun skype--user-get-attr (user-handle attr)
   "Return a property value.
@@ -635,8 +635,10 @@ The argument USER-HANDLE can be `skype-user' object."
                             (skype--com-get-object-attr gid "GROUP" "TYPE"))
                            gid))
                     groups)))
-          (if friend-group
-              (skype--get-group-users friend-group))))))
+	  (if (string= c-group-type "ALL_FRIENDS")
+	      (skype--split (substring (skype--com "SEARCH FRIENDS") 6))
+	    (if friend-group
+		(skype--get-group-users friend-group)))))))
 
 ;;; User actions
 
