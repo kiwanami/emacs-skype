@@ -224,18 +224,74 @@ BUILDER function."
 (defvar skype--com-debug-mode nil
   "Debug for skype communication port.")
 
+(defvar skype--com-handlers
+  (if (fboundp 'dbus-call-method)
+      'skype--com-handlers-dbus
+    'skype--com-handlers-py))
+
+(defvar skype--com-handlers-dbus
+  '((call . skype--com-dbus-call)
+    (ping . skype--com-dbus-ping)))
+
+(defun skype--com-dbus-ping ()
+  (dbus-ping :session "com.Skype.API"))
+
+(defun skype--com-dbus-call (message)
+  (dbus-call-method 
+   :session 
+   "com.Skype.API"			; service name
+   "/com/Skype"				; path
+   "com.Skype.API"			; interface name
+   "Invoke"				; method name
+   message))
+
+(defvar skype--com-handlers-py
+  '((call . skype--com-py-call)
+    (ping . skype--com-py-ping)))
+(defvar skype--com-py-buffer-name "*skype--com-py*")
+(defvar skype--com-py-process nil)
+(defvar skype--com-py-program "python")
+(defvar skype--com-py-script (expand-file-name "skype-proxy.py" skype--libpath))
+
+(defun skype--com-py-buffer ()
+  (get-buffer-create skype--com-py-buffer-name))
+
+(defun skype--com-py-ping ()
+  (when (and (executable-find skype--com-py-program)
+	     (file-exists-p skype--com-py-script))
+    (when (and skype--com-py-process
+	       (eq (process-status skype--com-py-process) 'run))
+      (kill-buffer skype--com-py-buffer-name))
+    (with-current-buffer (skype--com-py-buffer)
+      (buffer-disable-undo)
+      (setq skype--com-py-process
+	    (start-process "skype--com-py" (current-buffer)
+			   skype--com-py-program
+			   skype--com-py-script))
+      (set-process-coding-system skype--com-py-process 'utf-8 'utf-8)
+      (and (accept-process-output skype--com-py-process 10)
+	   (string-match "^OK" (buffer-string))))))
+
+(defun skype--com-py-call (message)
+  (catch 'return
+    (with-current-buffer (skype--com-py-buffer)
+      (erase-buffer)
+      (process-send-string skype--com-py-process (concat message "\n"))
+      (while (accept-process-output skype--com-py-process 10)
+	(save-excursion
+	  (goto-char (point-min))
+	  (when (search-forward "\n" nil t)
+	    (throw 'return (buffer-substring (point-min) (match-beginning 0)))))))))
+  
+(defun skype--com-invoke-handler (name &rest args)
+  (let ((handlers (symbol-value skype--com-handlers)))
+    (apply (assoc-default name handlers) args)))
+
 (defun skype--com (message)
   "This function provides the primitive communicate with the Skype API.
 If the API returns an error output, the function throws a skype-error signal.
 If `skype--com-debug-mode' is non-nil, this function logs I/O into the debug buffer."
-  (let ((ret 
-         (dbus-call-method 
-          :session 
-          "com.Skype.API" ; service name
-          "/com/Skype"    ; path
-          "com.Skype.API" ; interface name
-          "Invoke"        ; method name
-          message)))
+  (let ((ret (skype--com-invoke-handler 'call message)))
     (when skype--com-debug-mode
       (let* ((buf-name "*skype-com debug*")
              (buf (get-buffer buf-name)))
@@ -263,7 +319,9 @@ Skype API command:
   "Return the value that can be get like following Skype API command:\n
 -> GET (type) (id) (attr)\n
 <- (type) (id) (attr) (value)\n."
-  (skype--com-get (concat type " " id " " attr)))
+  (let ((ret (skype--com-get (concat type " " id " " attr))))
+    (unless (string= ret "")
+      ret)))
 
 ;; emoticons
 
@@ -577,8 +635,10 @@ The argument USER-HANDLE can be `skype-user' object."
                             (skype--com-get-object-attr gid "GROUP" "TYPE"))
                            gid))
                     groups)))
-          (if friend-group
-              (skype--get-group-users friend-group))))))
+	  (if (string= c-group-type "ALL_FRIENDS")
+	      (skype--split (substring (skype--com "SEARCH FRIENDS") 6))
+	    (if friend-group
+		(skype--get-group-users friend-group)))))))
 
 ;;; User actions
 
@@ -588,8 +648,10 @@ The argument USER-HANDLE can be `skype-user' object."
   (when (skype-user-p user-handle)
     (setq user-handle (skype-user-handle user-handle)))
   (let ((ret (skype--com (concat "CHAT CREATE " user-handle))))
-    (if (string-match "^CHAT \\(.+\\) STATUS DIALOG" ret)
-        (match-string-no-properties 1 ret))))
+    (when (string-match "^CHAT \\(.+\\) STATUS DIALOG" ret)
+      (let ((id (match-string-no-properties 1 ret)))
+	;; (skype--com (concat "OPEN CHAT " id))
+	id))))
 
 (defun skype--start-call (user-handle)
   "Start a skype call and return the call-handle.
@@ -895,9 +957,9 @@ The argument CHAT-HANDLE can be `skype-chat' object."
 (defun skype--init ()
   "Initialize the Skype API connection."
   (interactive)
-  (if (not (dbus-ping :session "com.Skype.API"))
+  (if (not (skype--com-invoke-handler 'ping))
       nil
-    (skype--com "NAME emacs23-dbus")
+    (skype--com "NAME emacs-skype")
     (skype--com "PROTOCOL 5")
     (skype--status-init)
     (skype--emoticons-init)
