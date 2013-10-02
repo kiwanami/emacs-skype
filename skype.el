@@ -121,6 +121,7 @@
 (require 'dbus)
 (require 'cl)
 
+(declare-function anything "anything")
 
 (defvar skype--my-user-handle "(your skype account name)"
   "Your user account name.")
@@ -1005,14 +1006,13 @@ This function create some buffer-local variables
     (with-current-buffer buf
       (unless (eq major-mode 'skype--chat-mode)
         (skype--chat-mode)
-        (make-local-variable 'skype-chat-handle)
-        (make-local-variable 'skype-last-updated-time)
-        (make-local-variable 'skype-chatmsg-table)
-        (make-local-variable 'skype-auto-read-state)
-        (setq skype-chat-handle (skype-chat-chat-handle chat-obj)
-              skype-last-updated-time nil
-              skype-auto-read-state skype--default-auto-read-state
-              skype-chatmsg-table (make-hash-table :test 'equal))
+        (set (make-local-variable 'skype-chat-handle)
+             (skype-chat-chat-handle chat-obj))
+        (set (make-local-variable 'skype-last-updated-time) nil)
+        (set (make-local-variable 'skype-chatmsg-table)
+             (make-hash-table :test 'equal))
+        (set (make-local-variable 'skype-auto-read-state)
+             skype--default-auto-read-state)
         (buffer-disable-undo buf)
         (skype--chat-mode-update-mode-line))
       (skype--timer-start-update)
@@ -1684,14 +1684,11 @@ update the mode line."
 
 (defun skype--message-mode ()
   (kill-all-local-variables)
-  (make-local-variable 'skype-history-pos)
-  (make-local-variable 'skype-writing-text)
-  (make-local-variable 'skype-mode-line-prompt)
+  (set (make-local-variable 'skype-history-pos) -1)
+  (set (make-local-variable 'skype-writing-text) "")
+  (set (make-local-variable 'skype-mode-line-prompt) "")
   (setq major-mode 'skype--message-mode
         mode-name "Skype-Message"
-        skype-history-pos -1
-        skype-writing-text ""
-        skype-mode-line-prompt ""
         mode-line-format skype--message-mode-line-format)
   (use-local-map skype--message-mode-map)
   (run-hooks 'skype--message-mode-hook))
@@ -1798,12 +1795,10 @@ function that returns a list of member handles."
       (unless (eq major-mode 'skype--member-mode)
         (skype--member-mode)
         (when chat-obj
-          (make-local-variable 'skype-chat-handle)
-          (setq skype-chat-handle (skype-chat-chat-handle chat-obj)))
-        (make-local-variable 'skype-chat-buffer)
-        (make-local-variable 'skype-member-getter-function)
-        (setq skype-chat-buffer chat-buf
-              skype-member-getter-function getter-function)
+          (set (make-local-variable 'skype-chat-handle)
+               (skype-chat-chat-handle chat-obj)))
+        (set (make-local-variable 'skype-chat-buffer) chat-buf)
+        (set (make-local-variable 'skype-member-getter-function) getter-function)
         (buffer-disable-undo buf))
       (skype--member-mode-update-buffer buf))
     buf))
