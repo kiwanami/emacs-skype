@@ -1146,8 +1146,8 @@ If the variable SAME-USER is non-nil, the user name is omitted."
        (message-field
         (skype--emoticons-replace 
          (if skype--layout-chatmsg-function
-             (skype--layout-chatmsg-function 
-              (skype--chat-handle-to-object chat-handle) msg)
+             (funcall skype--layout-chatmsg-function 
+                      (skype--chat-handle-to-object chat-handle) msg)
            (skype-chatmsg-body msg))))
        (line-bgcolor (if (skype--chatmsg-mine-p msg)
                          'skype--face-my-message
