@@ -119,7 +119,9 @@
 ;;; Code:
 
 (require 'dbus)
-(eval-when-compile (require 'cl))
+(require 'cl)
+
+(declare-function anything "anything")
 
 (defvar skype--my-user-handle "(your skype account name)"
   "Your user account name.")
@@ -132,6 +134,23 @@
   
 (defvar skype--emoticon-path (concat skype--libpath "/emoticons")
   "Directory for the skype emoticons. [automatically detected]")
+
+;; Declarations of buffer local variable
+(defvar skype-chat-handle nil)
+(defvar skype-last-updated-time nil)
+(defvar skype-chatmsg-table nil)
+(defvar skype-auto-read-state nil)
+(defvar skype-chat-handle nil)
+(defvar skype-chat-buffer nil)
+(defvar skype-send-history nil)
+(defvar skype-commit-function nil)
+(defvar skype-mode-line-prompt nil)
+(defvar skype-send-history nil)
+(defvar skype-mode-line-chat-info nil)
+(defvar skype-history-pos nil)
+(defvar skype-writing-text nil)
+(defvar skype-mode-line-prompt nil)
+(defvar skype-member-getter-function nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; private fundamental functions
@@ -454,8 +473,7 @@ Skype API command:
   (let ((buf (get-buffer-create " *skype work*"))
         (text (substring arg 0)) name pos)
     (buffer-disable-undo buf)
-    (save-excursion
-      (set-buffer buf)
+    (with-current-buffer buf
       (erase-buffer)
       (insert text)
       (maphash
@@ -692,6 +710,11 @@ The argument USER-HANDLE can be `skype-user' object."
    :title (skype--chat-get-attr chat-handle "FRIENDLYNAME")
    :time (skype--chat-get-last-timestamp chat-handle)))
 
+(defsubst skype--convert-from-skype-time (str)
+  "Return a float time value from a string time value 
+of the skype API."
+  (seconds-to-time (string-to-number str)))
+
 (defun skype--chat-get-last-timestamp (chat-handle)
   "Return last chat message time as float seconds."
   (skype--convert-from-skype-time 
@@ -733,6 +756,11 @@ This function is used by `skype--chat-get-recent-objects', `skype--chat-get-book
 
 ;;; Chat actions
 
+(defvar skype--chat-send-message-function nil
+  "Abnormal hook for sending a message with two argument,
+the skype-chat object and the sending text message. The returned
+text is sent to the skype.") ; TODO test
+
 (defun skype--chat-send-message (chat-handle text)
   "Send a chat message.
 The argument CHAT-HANDLE can be `skype-chat' object."
@@ -746,11 +774,6 @@ The argument CHAT-HANDLE can be `skype-chat' object."
                          (skype--chat-handle-to-object chat-handle) text)
               text)
             'utf-8-dos))))
-
-(defvar skype--chat-send-message-function nil
-  "Abnormal hook for sending a message with two argument,
-the skype-chat object and the sending text message. The returned
-text is sent to the skype.") ; TODO test
 
 (defun skype--chat-set-topic (chat-handle topic)
   "Set a chat title.
@@ -841,6 +864,10 @@ The argument CHAT-HANDLE can be `skype-chat' object."
 ;; t-state: 'update 'new 'unchange
 (defstruct skype-chatmsg handle from-handle time status type body t-state)
 
+(defsubst skype--chatmsg-get-attr (chat-handle attr)
+  "Return a property value."
+  (skype--com-get-object-attr chat-handle "CHATMESSAGE" attr))
+
 (defun skype--chatmsg-create-object (handle last-object)
   "Build a chatmsg object from the given chatmsg-handle and
 register the object to the local variable `skype-chatmsg-table'."
@@ -880,23 +907,14 @@ register the object to the local variable `skype-chatmsg-table'."
       (puthash handle new-object skype-chatmsg-table)))
     new-object))
 
+(defsubst skype--chatmsg-get-cache-object (handle)
+  (gethash handle skype-chatmsg-table))
+
 (defun skype--chatmsg-handle-to-object (handle)
   "Return a chatmsg object. This function uses the buffer local
 hash-table `skype-chatmsg-table' and time-stamp
 `skype-last-updated-time'."
   (skype--chatmsg-create-object handle (skype--chatmsg-get-cache-object handle)))
-
-(defsubst skype--chatmsg-get-cache-object (handle)
-  (gethash handle skype-chatmsg-table))
-
-(defsubst skype--chatmsg-get-attr (chat-handle attr)
-  "Return a property value."
-  (skype--com-get-object-attr chat-handle "CHATMESSAGE" attr))
-
-(defsubst skype--convert-from-skype-time (str)
-  "Return a float time value from a string time value 
-of the skype API."
-  (seconds-to-time (string-to-number str)))
 
 (defun skype--strtime (time)
   (if (equal (cdddr (decode-time time))
@@ -985,18 +1003,16 @@ This function create some buffer-local variables
           (if (skype-chat-p chat-handle) chat-handle
             (skype--chat-handle-to-object chat-handle)))
          (buf (get-buffer-create (skype--chat-get-buffername chat-obj))))
-    (save-excursion
-      (set-buffer buf)
+    (with-current-buffer buf
       (unless (eq major-mode 'skype--chat-mode)
         (skype--chat-mode)
-        (make-local-variable 'skype-chat-handle)
-        (make-local-variable 'skype-last-updated-time)
-        (make-local-variable 'skype-chatmsg-table)
-        (make-local-variable 'skype-auto-read-state)
-        (setq skype-chat-handle (skype-chat-chat-handle chat-obj)
-              skype-last-updated-time nil
-              skype-auto-read-state skype--default-auto-read-state
-              skype-chatmsg-table (make-hash-table :test 'equal))
+        (set (make-local-variable 'skype-chat-handle)
+             (skype-chat-chat-handle chat-obj))
+        (set (make-local-variable 'skype-last-updated-time) nil)
+        (set (make-local-variable 'skype-chatmsg-table)
+             (make-hash-table :test 'equal))
+        (set (make-local-variable 'skype-auto-read-state)
+             skype--default-auto-read-state)
         (buffer-disable-undo buf)
         (skype--chat-mode-update-mode-line))
       (skype--timer-start-update)
@@ -1130,8 +1146,8 @@ If the variable SAME-USER is non-nil, the user name is omitted."
        (message-field
         (skype--emoticons-replace 
          (if skype--layout-chatmsg-function
-             (skype--layout-chatmsg-function 
-              (skype--chat-handle-to-object chat-handle) msg)
+             (funcall skype--layout-chatmsg-function 
+                      (skype--chat-handle-to-object chat-handle) msg)
            (skype-chatmsg-body msg))))
        (line-bgcolor (if (skype--chatmsg-mine-p msg)
                          'skype--face-my-message
@@ -1430,8 +1446,7 @@ contact users and return an user handle."
          (buf-name (skype--chatmsg-get-buffername chat-obj))
          (buf (get-buffer-create buf-name))
          (send-history skype-send-history) msg-window)
-      (save-excursion
-        (set-buffer buf)
+      (with-current-buffer buf
         (skype--message-mode)
         (make-local-variable 'skype-chat-handle)
         (make-local-variable 'skype-chat-buffer)
@@ -1607,8 +1622,7 @@ update the mode line."
     (if (> (length skype-send-history) skype--message-send-history-size)
         (nbutlast skype-send-history))
     (setq send-history skype-send-history)
-    (save-excursion
-      (set-buffer chat-buf)
+    (with-current-buffer chat-buf
       (setq skype-send-history send-history)
       (skype--update-chat-buffer-command))
     (let ((other-window-scroll-buffer chat-buf))
@@ -1670,14 +1684,11 @@ update the mode line."
 
 (defun skype--message-mode ()
   (kill-all-local-variables)
-  (make-local-variable 'skype-history-pos)
-  (make-local-variable 'skype-writing-text)
-  (make-local-variable 'skype-mode-line-prompt)
+  (set (make-local-variable 'skype-history-pos) -1)
+  (set (make-local-variable 'skype-writing-text) "")
+  (set (make-local-variable 'skype-mode-line-prompt) "")
   (setq major-mode 'skype--message-mode
         mode-name "Skype-Message"
-        skype-history-pos -1
-        skype-writing-text ""
-        skype-mode-line-prompt ""
         mode-line-format skype--message-mode-line-format)
   (use-local-map skype--message-mode-map)
   (run-hooks 'skype--message-mode-hook))
@@ -1780,17 +1791,14 @@ function that returns a list of member handles."
                         (skype--chat-handle-to-object skype-chat-handle)))
          (buf (get-buffer-create buffername))
          (chat-buf (current-buffer)))
-    (save-excursion
-      (set-buffer buf)
+    (with-current-buffer buf
       (unless (eq major-mode 'skype--member-mode)
         (skype--member-mode)
         (when chat-obj
-          (make-local-variable 'skype-chat-handle)
-          (setq skype-chat-handle (skype-chat-chat-handle chat-obj)))
-        (make-local-variable 'skype-chat-buffer)
-        (make-local-variable 'skype-member-getter-function)
-        (setq skype-chat-buffer chat-buf
-              skype-member-getter-function getter-function)
+          (set (make-local-variable 'skype-chat-handle)
+               (skype-chat-chat-handle chat-obj)))
+        (set (make-local-variable 'skype-chat-buffer) chat-buf)
+        (set (make-local-variable 'skype-member-getter-function) getter-function)
         (buffer-disable-undo buf))
       (skype--member-mode-update-buffer buf))
     buf))
@@ -1988,5 +1996,9 @@ active buffers those are shown in the some windows."
 
 (skype--init)
 (provide 'skype)
+
+;; Local Variables:
+;; byte-compile-warnings: (not cl-functions)
+;; End:
 
 ;;; skype.el ends here
