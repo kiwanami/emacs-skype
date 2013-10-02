@@ -455,8 +455,7 @@ Skype API command:
   (let ((buf (get-buffer-create " *skype work*"))
         (text (substring arg 0)) name pos)
     (buffer-disable-undo buf)
-    (save-excursion
-      (set-buffer buf)
+    (with-current-buffer buf
       (erase-buffer)
       (insert text)
       (maphash
@@ -986,8 +985,7 @@ This function create some buffer-local variables
           (if (skype-chat-p chat-handle) chat-handle
             (skype--chat-handle-to-object chat-handle)))
          (buf (get-buffer-create (skype--chat-get-buffername chat-obj))))
-    (save-excursion
-      (set-buffer buf)
+    (with-current-buffer buf
       (unless (eq major-mode 'skype--chat-mode)
         (skype--chat-mode)
         (make-local-variable 'skype-chat-handle)
@@ -1431,8 +1429,7 @@ contact users and return an user handle."
          (buf-name (skype--chatmsg-get-buffername chat-obj))
          (buf (get-buffer-create buf-name))
          (send-history skype-send-history) msg-window)
-      (save-excursion
-        (set-buffer buf)
+      (with-current-buffer buf
         (skype--message-mode)
         (make-local-variable 'skype-chat-handle)
         (make-local-variable 'skype-chat-buffer)
@@ -1608,8 +1605,7 @@ update the mode line."
     (if (> (length skype-send-history) skype--message-send-history-size)
         (nbutlast skype-send-history))
     (setq send-history skype-send-history)
-    (save-excursion
-      (set-buffer chat-buf)
+    (with-current-buffer chat-buf
       (setq skype-send-history send-history)
       (skype--update-chat-buffer-command))
     (let ((other-window-scroll-buffer chat-buf))
@@ -1781,8 +1777,7 @@ function that returns a list of member handles."
                         (skype--chat-handle-to-object skype-chat-handle)))
          (buf (get-buffer-create buffername))
          (chat-buf (current-buffer)))
-    (save-excursion
-      (set-buffer buf)
+    (with-current-buffer buf
       (unless (eq major-mode 'skype--member-mode)
         (skype--member-mode)
         (when chat-obj
