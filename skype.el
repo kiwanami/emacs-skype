@@ -709,6 +709,11 @@ The argument USER-HANDLE can be `skype-user' object."
    :title (skype--chat-get-attr chat-handle "FRIENDLYNAME")
    :time (skype--chat-get-last-timestamp chat-handle)))
 
+(defsubst skype--convert-from-skype-time (str)
+  "Return a float time value from a string time value 
+of the skype API."
+  (seconds-to-time (string-to-number str)))
+
 (defun skype--chat-get-last-timestamp (chat-handle)
   "Return last chat message time as float seconds."
   (skype--convert-from-skype-time 
@@ -750,6 +755,11 @@ This function is used by `skype--chat-get-recent-objects', `skype--chat-get-book
 
 ;;; Chat actions
 
+(defvar skype--chat-send-message-function nil
+  "Abnormal hook for sending a message with two argument,
+the skype-chat object and the sending text message. The returned
+text is sent to the skype.") ; TODO test
+
 (defun skype--chat-send-message (chat-handle text)
   "Send a chat message.
 The argument CHAT-HANDLE can be `skype-chat' object."
@@ -763,11 +773,6 @@ The argument CHAT-HANDLE can be `skype-chat' object."
                          (skype--chat-handle-to-object chat-handle) text)
               text)
             'utf-8-dos))))
-
-(defvar skype--chat-send-message-function nil
-  "Abnormal hook for sending a message with two argument,
-the skype-chat object and the sending text message. The returned
-text is sent to the skype.") ; TODO test
 
 (defun skype--chat-set-topic (chat-handle topic)
   "Set a chat title.
@@ -858,6 +863,10 @@ The argument CHAT-HANDLE can be `skype-chat' object."
 ;; t-state: 'update 'new 'unchange
 (defstruct skype-chatmsg handle from-handle time status type body t-state)
 
+(defsubst skype--chatmsg-get-attr (chat-handle attr)
+  "Return a property value."
+  (skype--com-get-object-attr chat-handle "CHATMESSAGE" attr))
+
 (defun skype--chatmsg-create-object (handle last-object)
   "Build a chatmsg object from the given chatmsg-handle and
 register the object to the local variable `skype-chatmsg-table'."
@@ -897,23 +906,14 @@ register the object to the local variable `skype-chatmsg-table'."
       (puthash handle new-object skype-chatmsg-table)))
     new-object))
 
+(defsubst skype--chatmsg-get-cache-object (handle)
+  (gethash handle skype-chatmsg-table))
+
 (defun skype--chatmsg-handle-to-object (handle)
   "Return a chatmsg object. This function uses the buffer local
 hash-table `skype-chatmsg-table' and time-stamp
 `skype-last-updated-time'."
   (skype--chatmsg-create-object handle (skype--chatmsg-get-cache-object handle)))
-
-(defsubst skype--chatmsg-get-cache-object (handle)
-  (gethash handle skype-chatmsg-table))
-
-(defsubst skype--chatmsg-get-attr (chat-handle attr)
-  "Return a property value."
-  (skype--com-get-object-attr chat-handle "CHATMESSAGE" attr))
-
-(defsubst skype--convert-from-skype-time (str)
-  "Return a float time value from a string time value 
-of the skype API."
-  (seconds-to-time (string-to-number str)))
 
 (defun skype--strtime (time)
   (if (equal (cdddr (decode-time time))
