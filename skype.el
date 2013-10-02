@@ -134,6 +134,23 @@
 (defvar skype--emoticon-path (concat skype--libpath "/emoticons")
   "Directory for the skype emoticons. [automatically detected]")
 
+;; Declarations of buffer local variable
+(defvar skype-chat-handle nil)
+(defvar skype-last-updated-time nil)
+(defvar skype-chatmsg-table nil)
+(defvar skype-auto-read-state nil)
+(defvar skype-chat-handle nil)
+(defvar skype-chat-buffer nil)
+(defvar skype-send-history nil)
+(defvar skype-commit-function nil)
+(defvar skype-mode-line-prompt nil)
+(defvar skype-send-history nil)
+(defvar skype-mode-line-chat-info nil)
+(defvar skype-history-pos nil)
+(defvar skype-writing-text nil)
+(defvar skype-mode-line-prompt nil)
+(defvar skype-member-getter-function nil)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; private fundamental functions
 
