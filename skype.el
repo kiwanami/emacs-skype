@@ -119,7 +119,8 @@
 ;;; Code:
 
 (require 'dbus)
-(eval-when-compile (require 'cl))
+(require 'cl)
+
 
 (defvar skype--my-user-handle "(your skype account name)"
   "Your user account name.")
@@ -1988,5 +1989,9 @@ active buffers those are shown in the some windows."
 
 (skype--init)
 (provide 'skype)
+
+;; Local Variables:
+;; byte-compile-warnings: (not cl-functions)
+;; End:
 
 ;;; skype.el ends here
