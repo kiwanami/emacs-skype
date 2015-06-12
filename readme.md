@@ -44,48 +44,48 @@ select something from all commands and entries quickly.
 
 You can use following key bind:
 
-| Key | Command |
-|--|--|
-| n,j | move next message|
-| p,k | move previous message|
-| a | send new message|
-| c | copy this message|
-| u | update buffer|
-| U | refresh buffer|
-| q | bury buffer|
-| Q | kill buffer|
-| A | reply to this message|
-| B | toggle bookmark|
-| R | toggle auto read|
-| + | add new chat member|
-| L | leave me from this chat|
-| t | set chat topic|
-| C | clear missed flag|
-| E | edit this message|
-| l | open chat member buffer|
-|   |  |
-| m | open new chat|
-| M | set my mood text|
+| Key | Command                 |
+|-----|-------------------------|
+| n,j | move next message       |
+| p,k | move previous message   |
+| a   | send new message        |
+| c   | copy this message       |
+| u   | update buffer           |
+| U   | refresh buffer          |
+| q   | bury buffer             |
+| Q   | kill buffer             |
+| A   | reply to this message   |
+| B   | toggle bookmark         |
+| R   | toggle auto read        |
+| +   | add new chat member     |
+| L   | leave me from this chat |
+| t   | set chat topic          |
+| C   | clear missed flag       |
+| E   | edit this message       |
+| l   | open chat member buffer |
+|     |                         |
+| m   | open new chat           |
+| M   | set my mood text        |
 
 ## Message buffer
 
 You can use following key bind:
 
-| Key | Command |
-|--|--|
-| C-c C-c |send|
-| C-c C-q |quit buffer|
-| C-c C-e |select emoticon|
-| C-c C-p |recall previous message|
-| C-c C-n |recall next message|
-| C-S-b   |chat scroll bottom|
-| C-S-p   |chat scroll down|
-| C-S-j   |chat scroll down|
-| C-S-n   |chat scroll up|
-| C-S-k   |chat scroll up|
-|         | |
-| C-S-q   |chat quit|
-| C-S-c   |chat clear missed|
+| Key     | Command                 |
+|---------|-------------------------|
+| C-c C-c | send                    |
+| C-c C-q | quit buffer             |
+| C-c C-e | select emoticon         |
+| C-c C-p | recall previous message |
+| C-c C-n | recall next message     |
+| C-S-b   | chat scroll bottom      |
+| C-S-p   | chat scroll down        |
+| C-S-j   | chat scroll down        |
+| C-S-n   | chat scroll up          |
+| C-S-k   | chat scroll up          |
+|         |                         |
+| C-S-q   | chat quit               |
+| C-S-c   | chat clear missed       |
 
 # License
 
