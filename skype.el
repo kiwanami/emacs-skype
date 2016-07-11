@@ -513,6 +513,7 @@ AWAY, NA, DND, INVISIBLE and LOGGEDOUT."
              ("Not available" "NA" "StatusNotAvailable")
              ("Do not disturb" "DND" "StatusDoNotDisturb")
              ("Invisible" "INVISIBLE" "StatusInvisible")
+             ("Skype out" "SKYPEOUT" "StatusOffline")
              ("Logged out" "LOGGEDOUT" "StatusOffline")))
     (let ((name (car i))
           (code (cadr i))
